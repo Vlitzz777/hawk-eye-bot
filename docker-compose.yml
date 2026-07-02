@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  bot-dashboard:
+    build: .
+    container_name: hawk-eye-dashboard
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+      - BOT_MODE=api   # 'api' = run dashboard only; 'bot' = run Telegram bot only
+    volumes:
+      - ./data:/app/data   # persist SQLite DB
+    restart: unless-stopped
+
+  # Optional: run the Telegram bot in a separate container
+  bot-telegram:
+    build: .
+    container_name: hawk-eye-bot
+    env_file:
+      - .env
+    environment:
+      - BOT_MODE=bot
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    depends_on:
+      - bot-dashboard
+    profiles: ["full"]   # only starts with `docker-compose --profile full up`

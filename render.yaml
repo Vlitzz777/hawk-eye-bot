@@ -1,0 +1,62 @@
+# Render Blueprint — deploys two free-tier services:
+#   1. hawk-eye-dashboard  (Web Service)  — FastAPI dashboard
+#   2. hawk-eye-bot        (Background Worker) — Telegram long-polling bot
+#
+# Both services share the same Docker image; they differ only by the
+# BOT_MODE env var which the Dockerfile uses to switch entrypoint.
+
+services:
+  - type: web
+    name: hawk-eye-dashboard
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: BOT_MODE
+        value: api
+      - key: PORT
+        value: 8000
+      - key: BOT_TOKEN
+        sync: false   # set manually in Render dashboard (secret)
+      - key: EXCHANGE
+        value: binance
+      - key: PREFERRED_PAIR
+        value: BTCUSDT
+      - key: RISK_DEFAULT_PERCENT
+        value: "1.0"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_PATH
+        value: /app/data/bot_users.db
+    disk:
+      name: data
+      mountPath: /app/data
+      sizeGB: 1   # free tier max persistent disk
+
+  - type: worker
+    name: hawk-eye-bot
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: BOT_MODE
+        value: bot
+      - key: BOT_TOKEN
+        sync: false   # must match the dashboard service's token
+      - key: EXCHANGE
+        value: binance
+      - key: PREFERRED_PAIR
+        value: BTCUSDT
+      - key: RISK_DEFAULT_PERCENT
+        value: "1.0"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_PATH
+        value: /app/data/bot_users.db
+    disk:
+      name: bot-data
+      mountPath: /app/data
+      sizeGB: 1

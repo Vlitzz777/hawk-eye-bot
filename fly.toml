@@ -1,0 +1,37 @@
+# fly.toml — Fly.io configuration
+# Deploy with: fly launch --no-config --image hawk-eye
+# Or build from source: fly deploy
+
+app = "hawk-eye"
+primary_region = "fra"   # Frankfurt — adjust to nearest region
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true   # free tier: stop when idle
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/healthz"
+
+# Persistent volume for SQLite DB (free tier: up to 3GB total)
+[[vm]]
+  size = "shared-cpu-1x"   # free tier
+  memory = "256mb"
+
+[mounts]
+  source = "hawk_eye_data"
+  destination = "/app/data"
